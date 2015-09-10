@@ -18,10 +18,11 @@ docker run -t -i -p 8000:80 \
 -e AWS_SECRET_KEY=YOUR_AWS_SECRET_KEY \
 -e AWS_REGION_NAME=YOUR_AWS_REGION_NAME \
 -e LK_DOCKER_HOST=YOUR_DOCKER_HOST_NAME \
---volume=/var/run/docker.sock:/tmp/docker.sock \
+--volume=/var/run/docker.sock:/tmp/docker.sock:ro \
 moovel/logspout-kinesis \
 kinesis://YOUR_KINESIS_STREAM_NAME
 ```
+**IMPORTANT:** If you have a valid IAM profile present for the instance you running on, you can remove the env variables `AWS_ACCESS_KEY`, `AWS_SECRET_KEY` from the run command.
 
 This adapter uses the docker host as the partion key. You can pass the value of it using the env variable `LK_DOCKER_HOST`.
 
@@ -34,7 +35,7 @@ This build includes the `httpstream` module which provides realtime access to al
 This adapter supports docker labels by adding them to the json message which gets then sent to the kinesis stream.
 
 ### Configuration
-The configuration is provides via the query parameters in the logspout url. Just add the desired parameters by appending them: `kinesis://myStream?buffer_size=20`
+The configuration is provided via the query parameters in the logspout url. Just add the desired parameters by appending them: `kinesis://myStream?buffer_size=20`
 
 | Parameter               | Description                                                                                                            | Default |
 |-------------------------|------------------------------------------------------------------------------------------------------------------------|---------|
@@ -43,7 +44,7 @@ The configuration is provides via the query parameters in the logspout url. Just
 | flush_interval           | Number of seconds when a batch gets flushed and sent.                                                                  | 1       |
 | batch_size               | Number of records per batch.                                                                                           | 10      |
 | max_attempts_per_record    | Number of retries.                                                                                                     | 10      |
-| start_interval            | StatInterval will be used to make a *best effort* attempt to send stats *approximately*,// when this interval elapses. | 1       |
+| start_interval            | StatInterval will be used to make a *best effort* attempt to send stats *approximately*, when this interval elapses. | 1       |
 
 Since this configuration is a one-to-one mapping to the [go-kinesis](https://github.com/sendgridlabs/go-kinesis) library defaults, head to the libary [docs](http://godoc.org/github.com/sendgridlabs/go-kinesis/batchproducer#Config) for further information.
 

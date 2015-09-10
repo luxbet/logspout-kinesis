@@ -97,11 +97,23 @@ func NewLogspoutAdapter(route *router.Route) (router.LogAdapter, error) {
 }
 
 func getKinesis(route *router.Route) *kinesis.Kinesis {
-    // set env variables AWS_ACCESS_KEY and AWS_SECRET_KEY AWS_REGION_NAME
-    auth, err := kinesis.NewAuthFromEnv()
-    if err != nil {
-        fmt.Printf("Unable to retrieve authentication credentials from the environment: %v", err)
-        os.Exit(1)
+    var auth *kinesis.AuthCredentials
+    var err error
+
+    if getopt("AWS_ACCESS_KEY", "") != "" {
+        // Get auth from env variables AWS_ACCESS_KEY and AWS_SECRET_KEY
+        auth, err = kinesis.NewAuthFromEnv()
+        if err != nil {
+            fmt.Printf("Unable to retrieve authentication credentials from the environment: %v", err)
+            os.Exit(1)
+        }
+    } else {
+        // Get auth from meta-data-server
+        auth, err = kinesis.NewAuthFromMetadata()
+        if err != nil {
+            fmt.Printf("Unable to retrieve authentication credentials from the the meta-data-server: %v", err)
+            os.Exit(1)
+        }
     }
 
     // AWS region
