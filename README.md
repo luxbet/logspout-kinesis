@@ -33,7 +33,7 @@ Debug mode can be enabled using the `DEBUG` env variable.
 This build includes the `httpstream` module which provides realtime access to all logs via the http/websocket protocol. After launching the container using docker run command from above you should now be able to connect to the stream: `curl http://YOUR_DOCKER_HOST_IP:8000/logs` 
 
 #### Label support
-This adapter supports docker labels by adding them to the json message which gets then sent to the kinesis stream.
+This adapter supports [docker labels](https://docs.docker.com/userguide/labels-custom-metadata/) by adding them to the json message which gets then sent to the kinesis stream.
 
 ### Configuration
 The configuration is provided via the query parameters in the logspout url. Just add the desired parameters by appending them: `kinesis://myStream?buffer_size=20`
