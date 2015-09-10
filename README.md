@@ -14,6 +14,7 @@ Run the logspout kinesis container on the docker host where you want to capture 
 ```
 docker run -t -i -p 8000:80 \
 -e DEBUG=1 \
+-e LOGSPOUT=ignore \
 -e AWS_ACCESS_KEY=YOUR_AWS_ACCESS_KEY \
 -e AWS_SECRET_KEY=YOUR_AWS_SECRET_KEY \
 -e AWS_REGION_NAME=YOUR_AWS_REGION_NAME \
