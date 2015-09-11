@@ -43,7 +43,7 @@ The configuration is provided via the query parameters in the logspout url. Just
 Alternatively you can set the specified environment variable when the config option supports that.
 
 | Parameter               | Description                                                                                                            | Default | ENV var |
-|-------------------------|------------------------------------------------------------------------------------------------------------------------|---------|
+|-------------------------|------------------------------------------------------------------------------------------------------------------------|---------|---------|
 | docker_host    | The host name docker is running on.                                                                                                     | "unknown-docker-host"      | LK_DOCKER_HOST |
 | partition_key    | The partition key for kinesis.                                                                                                     | docker_host value     | LK_PARTITION_KEY |
 | use_v0_layout    | Use the logstash v0 layout.                                                                                                     | false      | LK_USE_V0_LAYOUT |
