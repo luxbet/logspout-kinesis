@@ -47,12 +47,12 @@ Alternatively you can set the specified environment variable when the config opt
 | docker_host    | The host name docker is running on.                                                                                                     | "unknown-docker-host"      | LK_DOCKER_HOST |
 | partition_key    | The partition key for kinesis.                                                                                                     | docker_host value     | LK_PARTITION_KEY |
 | use_v0_layout    | Use the logstash v0 layout.                                                                                                     | false      | LK_USE_V0_LAYOUT |
-| add_blocks_when_buffer_full | Should the batch producer add blocks even if the buffer is full?                                                       | false   |
-| buffer_size              | Size of the internal kinesis records buffer.                                                                           | 10000   |
-| flush_interval           | Number of seconds when a batch gets flushed and sent.                                                                  | 1       |
-| batch_size               | Number of records per batch.                                                                                           | 10      |
-| max_attempts_per_record    | Number of retries.                                                                                                     | 10      |
-| stat_interval            | **NOT RELEVANT YET** StatInterval will be used to make a *best effort* attempt to send stats *approximately*, when this interval elapses. | 1       |
+| add_blocks_when_buffer_full | Should the batch producer add blocks even if the buffer is full?                                                       | false   | |
+| buffer_size              | Size of the internal kinesis records buffer.                                                                           | 10000   | |
+| flush_interval           | Number of seconds when a batch gets flushed and sent.                                                                  | 1       | |
+| batch_size               | Number of records per batch.                                                                                           | 10      | |
+| max_attempts_per_record    | Number of retries.                                                                                                     | 10      | |
+| stat_interval            | **NOT RELEVANT YET** StatInterval will be used to make a *best effort* attempt to send stats *approximately*, when this interval elapses. | 1       | |
 
 Since this configuration is a one-to-one mapping to the [go-kinesis](https://github.com/sendgridlabs/go-kinesis) library defaults, head to the libary [docs](http://godoc.org/github.com/sendgridlabs/go-kinesis/batchproducer#Config) for further information.
 
