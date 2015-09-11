@@ -22,6 +22,7 @@ type KinesisAdapter struct {
     batch_producer 	batchproducer.Producer
     streamName		string
     docker_host 	string
+    partition_key   string
     use_v0    		bool
 }
 
@@ -53,6 +54,10 @@ type LogstashMessageV1 struct {
     Fields      DockerFields      `json:"docker"`
 }
 
+type RouteHelper struct {
+    route     *router.Route
+}
+
 func init() {
 	// Register this adapter
     router.AdapterFactories.Register(NewLogspoutAdapter, "kinesis")
@@ -66,9 +71,12 @@ func NewLogspoutAdapter(route *router.Route) (router.LogAdapter, error) {
     streamName := route.Address
     fmt.Printf("# KINESIS Adapter - Using stream: %s\n", streamName)
     
+    // Create a route helper for easier route access
+    route_helper := RouteHelper{route: route}
+    
     // Batch config
-    batchproducer_config := getKinesisConfig(route)
-    fmt.Printf("# KINESIS Adapter - Batch config: %v\n", streamName)
+    batchproducer_config := getKinesisConfig(route_helper)
+    fmt.Printf("# KINESIS Adapter - Batch config: %v\n", batchproducer_config)
     
 	// Create a batchproducer
 	batch_producer, err := batchproducer.New(batch_client, streamName, batchproducer_config)
@@ -78,12 +86,24 @@ func NewLogspoutAdapter(route *router.Route) (router.LogAdapter, error) {
 	}
 
 	// Host of the docker instance
-	docker_host := getopt("LK_DOCKER_HOST", "unknown-docker-host")
-
+    docker_host := route.Options["docker_host"]
+    if docker_host == "" {
+        docker_host = getEnvVar("LK_DOCKER_HOST", "unknown-docker-host")
+    }
+	
 	// Whether to use the v0 logtstash layout or v1
     use_v0 := route.Options["use_v0_layout"] != ""
     if !use_v0 {
-        use_v0 = getopt("LK_USE_V0_LAYOUT", "") != ""
+        use_v0 = getEnvVar("LK_USE_V0_LAYOUT", "") != ""
+    }
+
+    // Partition key
+    partition_key := route.Options["partition_key"]
+    if partition_key == "" {
+        partition_key = getEnvVar("LK_PARTITION_KEY", "")
+        if partition_key == "" {
+            partition_key = docker_host
+        }
     }
 
 	// Return the kinesis adapter that will receive all the logs
@@ -92,6 +112,7 @@ func NewLogspoutAdapter(route *router.Route) (router.LogAdapter, error) {
         batch_producer: batch_producer,
         streamName: 	streamName,
         docker_host:    docker_host,
+        partition_key:  partition_key,
         use_v0:         use_v0,
     }, nil
 }
@@ -100,7 +121,7 @@ func getKinesis(route *router.Route) *kinesis.Kinesis {
     var auth *kinesis.AuthCredentials
     var err error
 
-    if getopt("AWS_ACCESS_KEY", "") != "" {
+    if getEnvVar("AWS_ACCESS_KEY", "") != "" {
         // Get auth from env variables AWS_ACCESS_KEY and AWS_SECRET_KEY
         auth, err = kinesis.NewAuthFromEnv()
         if err != nil {
@@ -123,70 +144,35 @@ func getKinesis(route *router.Route) *kinesis.Kinesis {
     return kinesis.New(auth, aws_region)
 }
 
-func getKinesisConfig(route *router.Route) batchproducer.Config {
-    AddBlocksWhenBufferFull := false
-    AddBlocksWhenBufferFull_string, ok := route.Options["add_blocks_when_buffer_full"];
-    if ok && AddBlocksWhenBufferFull_string != "" {
-        if b, err := strconv.ParseBool(AddBlocksWhenBufferFull_string); err == nil {
-            AddBlocksWhenBufferFull = b
-        }
-    }
-
-    BufferSize := 10000
-    BufferSize_string, ok := route.Options["buffer_size"];
-    if ok && BufferSize_string != "" {
-        if i, err := strconv.ParseInt(AddBlocksWhenBufferFull_string, 10, 0); err == nil {
-            BufferSize = int(i)
-        }
-    }
-
-    FlushInterval := 1 * time.Second
-    FlushInterval_string, ok := route.Options["flush_interval"];
-    if ok && FlushInterval_string != "" {
-        if i, err := strconv.ParseInt(FlushInterval_string, 10, 0); err == nil {
-            FlushInterval = time.Duration(i) * time.Second
-        }
-    }
-
-    BatchSize := 10
-    BatchSize_string, ok := route.Options["batch_size"];
-    if ok && BatchSize_string != "" {
-        if i, err := strconv.ParseInt(BatchSize_string, 10, 0); err == nil {
-            BatchSize = int(i)
-        }
-    }
-
-    MaxAttemptsPerRecord := 10
-    MaxAttemptsPerRecord_string, ok := route.Options["max_attempts_per_record"];
-    if ok && MaxAttemptsPerRecord_string != "" {
-        if i, err := strconv.ParseInt(MaxAttemptsPerRecord_string, 10, 0); err == nil {
-            MaxAttemptsPerRecord = int(i)
-        }
-    }
-
-    StatInterval := 1 * time.Second
-    StatInterval_string, ok := route.Options["start_interval"];
-    if ok && StatInterval_string != "" {
-        if i, err := strconv.ParseInt(StatInterval_string, 10, 0); err == nil {
-            StatInterval = time.Duration(i) * time.Second
-        }
-    }
-
+func getKinesisConfig(route_helper RouteHelper) batchproducer.Config {
     return batchproducer.Config{
-        AddBlocksWhenBufferFull: AddBlocksWhenBufferFull,
-        BufferSize:              BufferSize,
-        FlushInterval:           FlushInterval,
-        BatchSize:               BatchSize,
-        MaxAttemptsPerRecord:    MaxAttemptsPerRecord,
-        StatInterval:            StatInterval,
+        AddBlocksWhenBufferFull: route_helper.route.Options["add_blocks_when_buffer_full"] == "true",
+        BufferSize:              route_helper.getOptInt("buffer_size", 10000),
+        FlushInterval:           time.Duration(route_helper.getOptInt("flush_interval", 1)) * time.Second,
+        BatchSize:               route_helper.getOptInt("batch_size", 10),
+        MaxAttemptsPerRecord:    route_helper.getOptInt("max_attempts_per_record", 10),
+        StatInterval:            time.Duration(route_helper.getOptInt("stat_interval", 1)) * time.Second,
         Logger:                  log.New(os.Stderr, "kinesis: ", log.LstdFlags),
     }
 }
 
-func getopt(name, dfault string) string {
+func getEnvVar(name, dfault string) string {
     value := os.Getenv(name)
     if value == "" {
         value = dfault
+    }
+    return value
+}
+
+func (rh *RouteHelper) getOptInt(key string, dfault int) int {
+    value := dfault
+    value_string, ok := rh.route.Options[key];
+    if ok && value_string != "" {
+        if i, err := strconv.ParseInt(value_string, 10, 0); err == nil {
+            value = int(i)
+        } else {
+            value = dfault
+        }
     }
     return value
 }
@@ -217,8 +203,8 @@ func (ka *KinesisAdapter) Stream(logstream chan *router.Message) {
             continue
         }
 
-        // Send log message to kinesis
-        err = ka.batch_producer.Add(log_json, ka.docker_host)
+        // Send json to kinesis
+        err = ka.batch_producer.Add(log_json, ka.partition_key)
         if err != nil {
         	if !mute {
                 log.Println("logspoutkinesis: error on batchproducer.Stop (muting until restored): %v\n", err)
