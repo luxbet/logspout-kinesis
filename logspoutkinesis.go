@@ -219,11 +219,22 @@ func (ka *KinesisAdapter) Stream(logstream chan *router.Message) {
 }	
 
 func splitImage(image string) (string, string) {
-    n := strings.Index(image, ":")
-    if n > -1 {
-        return image[0:n], image[n+1:]
+    tag := ""
+    parts := strings.SplitN(image, "/", 2)
+    repo := ""
+    if len(parts) == 2 {
+        repo = parts[0]
+        image = parts[1]
     }
-    return image, ""
+    parts = strings.SplitN(image, ":", 2)
+    if len(parts) == 2 {
+        image = parts[0]
+        tag = parts[1]
+    }
+    if repo != "" {
+        image = fmt.Sprintf("%s/%s", repo, image)
+    }
+    return image, tag
 }
 
 func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) interface{} {
