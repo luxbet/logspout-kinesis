@@ -31,6 +31,7 @@ type DockerFields struct {
     CID         string              `json:"cid"`
     Image       string              `json:"image"`
     ImageTag    string              `json:"image_tag,omitempty"`
+    ImageRepo   string              `json:"image_repo,omitempty"`
     Source      string              `json:"source"`
     DockerHost  string              `json:"docker_host,omitempty"`
     Labels      map[string]string   `json:"labels,omitempty"`
@@ -218,27 +219,29 @@ func (ka *KinesisAdapter) Stream(logstream chan *router.Message) {
 	}
 }	
 
-func splitImage(image string) (string, string) {
-    tag := ""
-    parts := strings.SplitN(image, "/", 2)
-    repo := ""
-    if len(parts) == 2 {
+func splitImage(image string) (string, string, string) {
+    var tag string
+    var repo string
+
+    parts := strings.Split(image, "/")
+    parts_len := len(parts)
+    if parts_len > 2 {
         repo = parts[0]
-        image = parts[1]
+        image = strings.Join(parts[1:parts_len], "/")
     }
+
     parts = strings.SplitN(image, ":", 2)
+
     if len(parts) == 2 {
         image = parts[0]
         tag = parts[1]
     }
-    if repo != "" {
-        image = fmt.Sprintf("%s/%s", repo, image)
-    }
-    return image, tag
+
+    return image, tag, repo
 }
 
 func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) interface{} {
-    image_name, image_tag := splitImage(m.Container.Config.Image)
+    image_name, image_tag, image_repo := splitImage(m.Container.Config.Image)
     cid := m.Container.ID[0:12]
     name := m.Container.Name[1:]
     labels := m.Container.Config.Labels
@@ -255,6 +258,7 @@ func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) i
                     Name:       name,
                     Image:      image_name,
                     ImageTag:   image_tag,
+                    ImageRepo:  image_repo,
                     Source:     m.Source,
                     DockerHost: docker_host,
                     Labels: labels,
