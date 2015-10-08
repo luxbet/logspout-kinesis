@@ -13,15 +13,15 @@ Run the logspout kinesis container on the docker host where you want to capture 
 
 ```
 docker run -t -i -p 8000:80 \
--e LOGSPOUT=ignore \
--e AWS_ACCESS_KEY=YOUR_AWS_ACCESS_KEY \
--e AWS_SECRET_KEY=YOUR_AWS_SECRET_KEY \
--e AWS_REGION_NAME=YOUR_AWS_REGION_NAME \
--e LK_DOCKER_HOST=YOUR_DOCKER_HOST_NAME \
---restart="always" \
---volume=/var/run/docker.sock:/tmp/docker.sock:ro \
-moovel/logspout-kinesis \
-kinesis://YOUR_KINESIS_STREAM_NAME
+  -e LOGSPOUT=ignore \
+  -e AWS_ACCESS_KEY=YOUR_AWS_ACCESS_KEY \
+  -e AWS_SECRET_KEY=YOUR_AWS_SECRET_KEY \
+  -e AWS_REGION_NAME=YOUR_AWS_REGION_NAME \
+  -e LK_DOCKER_HOST=YOUR_DOCKER_HOST_NAME \
+  --restart="always" \
+  --volume=/var/run/docker.sock:/tmp/docker.sock:ro \
+  moovel/logspout-kinesis \
+  kinesis://YOUR_KINESIS_STREAM_NAME
 ```
 #### Authentication
 If you have a valid IAM profile present for the instance you running on, you can omit the env variables `AWS_ACCESS_KEY`, `AWS_SECRET_KEY` from the run command and it will try to query the meta-data service for IAM information .  
