@@ -1,6 +1,6 @@
 #!/bin/sh
 cat > ./Dockerfile <<DOCKERFILE
-FROM gliderlabs/logspout:latest
+FROM gliderlabs/logspout:master
 DOCKERFILE
 
 cat > ./modules.go <<MODULES
