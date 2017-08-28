@@ -225,10 +225,10 @@ func (ka *KinesisAdapter) Stream(logstream chan *router.Message) {
 
 		// Set the partition key per container, so that we can load balance
 		// across multiple streams
-		partition_key := ka.partition_key
-		use_cid_key := getEnvVar("LK_PARTITION_KEY", "")
-		if use_cid_key != "" {
-			partition_key = m.Container.ID[0:12]
+		partition_key := m.Container.ID[0:12]
+		use_host_as_key := getEnvVar("USE_HOST_AS_PARTITION_KEY", "")
+		if use_host_as_key == "" {
+			partition_key = ka.partition_key
 		}
 		// Send json to kinesis
 		err = ka.batch_producer.Add(log_json, partition_key)
