@@ -223,8 +223,15 @@ func (ka *KinesisAdapter) Stream(logstream chan *router.Message) {
 			continue
 		}
 
+		// Set the partition key per container, so that we can load balance
+		// across multiple streams
+		partition_key := ka.partition_key
+		use_cid_key := getEnvVar("LK_PARTITION_KEY", "")
+		if use_cid_key != "" {
+			partition_key = m.Container.ID[0:12]
+		}
 		// Send json to kinesis
-		err = ka.batch_producer.Add(log_json, ka.partition_key)
+		err = ka.batch_producer.Add(log_json, partition_key)
 		if err != nil {
 			if !mute {
 				log.Println("logspoutkinesis: error on batchproducer.Stop (muting until restored): %v\n", err)
