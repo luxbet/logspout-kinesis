@@ -230,10 +230,6 @@ func (ka *KinesisAdapter) Stream(logstream chan *router.Message) {
 		if use_host_as_key != "" {
 			partition_key = ka.partition_key
 		}
-		// Send json to kinesis
-		if !mute {
-			log.Printf("Sending logs to partition %s\n", partition_key)
-		}
 		err = ka.batch_producer.Add(log_json, partition_key)
 		if err != nil {
 			if !mute {
