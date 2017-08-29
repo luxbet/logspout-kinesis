@@ -217,7 +217,7 @@ func (ka *KinesisAdapter) Stream(logstream chan *router.Message) {
 		log_json, err := json.Marshal(msg)
 		if err != nil {
 			if !mute {
-				log.Println("logspoutkinesis: error on json.Marshal (muting until restored): %v\n", err)
+				log.Printf("logspoutkinesis: error on json.Marshal (muting until restored): %v\n", err)
 				mute = true
 			}
 			continue
@@ -227,14 +227,17 @@ func (ka *KinesisAdapter) Stream(logstream chan *router.Message) {
 		// across multiple streams
 		partition_key := m.Container.ID[0:12]
 		use_host_as_key := getEnvVar("USE_HOST_AS_PARTITION_KEY", "")
-		if use_host_as_key == "" {
+		if use_host_as_key != "" {
 			partition_key = ka.partition_key
 		}
 		// Send json to kinesis
+		if !mute {
+			log.Printf("Sending logs to partition %s\n", partition_key)
+		}
 		err = ka.batch_producer.Add(log_json, partition_key)
 		if err != nil {
 			if !mute {
-				log.Println("logspoutkinesis: error on batchproducer.Stop (muting until restored): %v\n", err)
+				log.Printf("logspoutkinesis: error on batchproducer.Stop (muting until restored): %v\n", err)
 				mute = true
 			}
 			continue
